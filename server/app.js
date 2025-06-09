@@ -1,5 +1,3 @@
-
-
 // server/app.js - Enhanced Server with Real Vapi Integration
 const express = require('express');
 const cors = require('cors');
@@ -31,14 +29,6 @@ try {
 // Security middleware
 app.use(helmet({
     contentSecurityPolicy: {
-  //     directives: {
-  //          defaultSrc: ["'self'"],
-   //         styleSrc: ["'self'", "'unsafe-inline'"],
-    //        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://vapi.ai"],
-    //        imgSrc: ["'self'", "data:", "https:"],
-    //        connectSrc: ["'self'", "wss://api.vapi.ai", "https://api.vapi.ai"]
-      //  }
-
       directives: {
         defaultSrc: ["'self'"],
         connectSrc: [
@@ -50,9 +40,12 @@ app.use(helmet({
         scriptSrc: [
             "'self'", 
             "'unsafe-inline'", 
+            "'unsafe-eval'",
             "https://unpkg.com",
             "https://cdn.jsdelivr.net"
         ],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
         // ... rest of your CSP
     }
     }
