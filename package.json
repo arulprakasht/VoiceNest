@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server/app.js",
     "dev": "nodemon server/app.js",
+    "build": "mkdir -p dist && cp -r client/* dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
