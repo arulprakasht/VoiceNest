@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Real Estate Assistant - Powered by Vapi.ai</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .voice-section {
+            text-align: center;
+        }
+
+        .voice-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .voice-button {
+            background: linear-gradient(135deg, var(--secondary), #059669);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .voice-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .voice-button:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .voice-button.recording {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .phone-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .phone-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .phone-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .phone-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .phone-button:hover {
+            background: var(--primary-dark);
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-button {
+            grid-column: 1 / -1;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .search-button:hover {
+            background: var(--primary-dark);
+        }
+
+        .results-section {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+
+        .status-bar {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: var(--background);
+            border-radius: 8px;
+        }
+
+        .status-item h3 {
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-healthy { background: var(--secondary); }
+        .status-error { background: var(--danger); }
+        .status-warning { background: var(--warning); }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .property-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease;
+        }
+
+        .property-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .property-price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--secondary);
+            margin-bottom: 10px;
+        }
+
+        .property-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .property-detail {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .property-location {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .call-history {
+            grid-column: 1 / -1;
+            margin-top: 30px;
+        }
+
+        .call-item {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .call-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .call-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+        }
+
+        .btn-view {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-end {
+            background: var(--danger);
+            color: white;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .results {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 AI Real Estate Assistant</h1>
+            <p>Built with Bolt.new - Talk to find your perfect property</p>
+        </div>
+
+        <div id="alerts"></div>
+
+        <div class="status-bar">
+            <div class="status-grid">
+                <div class="status-item">
+                    <h3>System Status</h3>
+                    <div id="system-status">
+                        <span class="status-indicator status-warning"></span>
+                        Checking...
+                    </div>
+                </div>
+                <div class="status-item">
+                    <h3>Vapi Assistant</h3>
+                    <div id="vapi-status">
+                        <span class="status-indicator status-warning"></span>
+                        Connecting...
+                    </div>
+                </div>
+                <div class="status-item">
+                    <h3>Database</h3>
+                    <div id="db-status">
+                        <span class="status-indicator status-warning"></span>
+                        Checking...
+                    </div>
+                </div>
+                <div class="status-item">
+                    <h3>Properties Found</h3>
+                    <div id="property-count">
+                        <span class="status-indicator status-healthy"></span>
+                        <span id="count-display">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>🎙️ Voice Assistant</h2>
+                <div class="voice-section">
+                    <p style="margin-bottom: 20px;">Start a voice conversation with our AI assistant to find properties</p>
+                    <div class="voice-controls">
+                        <button id="start-web-call" class="voice-button">
+                            <span>🎧</span> Start Voice Chat
+                        </button>
+                        <button id="end-call" class="voice-button" style="display: none;">
+                            <span>🛑</span> End Call
+                        </button>
+                        <div id="call-status" style="margin-top: 10px; font-weight: 600;"></div>
+                    </div>
+                    
+                    
+                    <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
+                        <p style="margin-bottom: 15px; font-weight: 600;">Or call directly:</p> 
+                        <div class="phone-input">
+                            <input type="tel" id="phone-number" placeholder="+1234567890" />
+                            <button id="make-call" class="phone-button">📞 Call</button> 
+                        </div> 
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🔍 Property Search</h2>
+                <form id="search-form" class="search-form">
+                    <div class="form-group">
+                        <label for="min-price">Min Price ($)</label>
+                        <input type="number" id="min-price" min="0" step="1000" placeholder="100000">
+                    </div>
+                    <div class="form-group">
+                        <label for="max-price">Max Price ($)</label>
+                        <input type="number" id="max-price" min="0" step="1000" placeholder="500000">
+                    </div>
+                    <div class="form-group">
+                        <label for="bedrooms">Bedrooms</label>
+                        <select id="bedrooms">
+                            <option value="">Any</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5+</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bathrooms">Bathrooms</label>
+                        <select id="bathrooms">
+                            <option value="">Any</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4+</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City</label>
+                        <input type="text" id="city" placeholder="Seattle">
+                    </div>
+                    <div class="form-group">
+                        <label for="state">State</label>
+                        <input type="text" id="state" placeholder="WA">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="property-type">Property Type</label>
+                        <select id="property-type">
+                            <option value="">Any</option>
+                            <option value="house">House</option>
+                            <option value="condo">Condo</option>
+                            <option value="townhouse">Townhouse</option>
+                            <option value="apartment">Apartment</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="search-button">🔍 Search Properties</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your request...</p>
+        </div>
+
+        <div class="results-section">
+            <div id="results" class="results"></div>
+        </div>
+
+        <div class="call-history card" style="display: none;" id="call-history-section">
+            <h2>📞 Recent Calls</h2>
+            <div id="call-history"></div>
+        </div>
+    </div>
+
+<script>
+    ////////////////////////////////
+    class VapiRealEstateApp {
+            constructor() {
+                this.currentCall = null;
+                this.webSocket = null;
+                this.mediaStream = null;
+                this.audioContext = null;
+                this.mediaRecorder = null;
+                this.init();
+            }
+
+            async init() {
+                try {
+                    this.setupEventListeners();
+                    await this.checkSystemHealth();
+                    await this.loadCallHistory();
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    this.showAlert('Voice capabilities may be limited. Please refresh the page if you need to make calls.', 'warning');
+                }
+            }
+
+            setupEventListeners() {
+                // Voice controls
+                document.getElementById('start-web-call').addEventListener('click', () => this.startWebCall());
+                document.getElementById('end-call').addEventListener('click', () => this.endCall());
+                document.getElementById('make-call').addEventListener('click', () => this.makePhoneCall());
+
+                // Search form
+                document.getElementById('search-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.searchProperties();
+                });
+
+                // Phone number formatting
+                document.getElementById('phone-number').addEventListener('input', (e) => {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 0 && !value.startsWith('1')) {
+                        value = '1' + value;
+                    }
+                    if (value.length > 11) {
+                        value = value.substring(0, 11);
+                    }
+                    e.target.value = value ? '+' + value : '';
+                });
+            }
+
+            async checkSystemHealth() {
+                try {
+                    const response = await fetch('/api/health');
+                    const health = await response.json();
+
+                    // Update system status
+                    this.updateStatus('system-status', health.status === 'OK' ? 'healthy' : 'error', 
+                                    health.status === 'OK' ? 'Online' : 'Offline');
+
+                    // Update Vapi status
+                    const vapiStatus = health.services?.vapi?.status || 'unavailable';
+                    this.updateStatus('vapi-status', 
+                                    vapiStatus === 'healthy' ? 'healthy' : 'error',
+                                    vapiStatus === 'healthy' ? 'Connected' : 'Disconnected');
+
+                    // Update database status
+                    const dbStatus = health.services?.supabase?.status || 'unavailable';
+                    this.updateStatus('db-status',
+                                    dbStatus === 'healthy' ? 'healthy' : 'error',
+                                    dbStatus === 'healthy' ? 'Connected' : 'Disconnected');
+
+                } catch (error) {
+                    console.error('Health check failed:', error);
+                    this.updateStatus('system-status', 'error', 'Error');
+                    this.updateStatus('vapi-status', 'error', 'Error');
+                    this.updateStatus('db-status', 'error', 'Error');
+                }
+            }
+
+            updateStatus(elementId, status, text) {
+                const element = document.getElementById(elementId);
+                const indicator = element.querySelector('.status-indicator');
+                
+                indicator.className = `status-indicator status-${status}`;
+                element.lastChild.textContent = text;
+            }
+
+            async startWebCall() {
+                try {
+                    this.showLoading();
+                    this.updateCallStatus('Initializing call...');
+
+                    // Get configuration and create call session
+                    const configResponse = await fetch('/api/vapi/config');
+                    const config = await configResponse.json();
+                    
+                    if (!config.success || !config.publicKey) {
+                        console.error('Invalid config response:', config);
+                        throw new Error('Failed to get Vapi configuration');
+                    }
+
+                    console.log('Creating call with config:', {
+                        assistantId: config.assistantId,
+                        publicKey: config.publicKey.substring(0, 8) + '...' // Log partial key for security
+                    });
+
+                    // Create a new call session through our backend proxy
+                    const callRequest = {
+                        assistantId: config.assistantId,
+                        transport: {
+                            provider: "vapi.websocket",
+                            audioFormat: {
+                                format: "pcm_s16le",
+                                container: "raw",
+                                sampleRate: 16000
+                            }
+                        }
+                    };
+
+                    console.log('Sending call creation request:', callRequest);
+
+                    const response = await fetch('/api/vapi/call', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(callRequest)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Call creation failed:', {
+                            status: response.status,
+                            statusText: response.statusText,
+                            error: errorText,
+                            request: callRequest
+                        });
+                        throw new Error(`Call creation failed: ${response.status} ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('Call creation raw response:', result);
+
+                    // Detailed validation of the response
+                    if (!result.success) {
+                        console.error('Call creation unsuccessful:', result);
+                        throw new Error(result.error || 'Call creation failed');
+                    }
+
+                    if (!result.data) {
+                        console.error('No data in response:', result);
+                        throw new Error('No data received from server');
+                    }
+
+                    // Check for WebSocket transport specifically
+                    if (!result.data.transport || result.data.transport.provider !== 'vapi.websocket') {
+                        console.error('Invalid transport type:', result.data.transport);
+                        throw new Error('Server returned non-WebSocket transport');
+                    }
+
+                    if (!result.data.transport.websocketCallUrl) {
+                        console.error('No WebSocket URL in transport:', result.data.transport);
+                        throw new Error('No WebSocket URL received');
+                    }
+
+                    this.currentCall = {
+                        id: result.data.id,
+                        websocketUrl: result.data.transport.websocketCallUrl
+                    };
+
+                    console.log('Call created successfully:', {
+                        id: this.currentCall.id,
+                        url: this.currentCall.websocketUrl,
+                        transport: result.data.transport
+                    });
+
+                    // Request microphone access with correct audio constraints
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            channelCount: 1,
+                            sampleRate: 16000,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        } 
+                    });
+                    this.mediaStream = stream;
+
+                    // Initialize WebSocket connection using the transport URL from response
+                    console.log('Attempting WebSocket connection to:', this.currentCall.websocketUrl);
+                    
+                    await this.connectWebSocket(this.currentCall.websocketUrl);
+
+                } catch (error) {
+                    console.error('Web call error:', error);
+                    this.showAlert(`Call failed: ${error.message}`, 'error');
+                    this.updateCallStatus('');
+                    this.updateCallUI(false);
+                    await this.cleanup();
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            startAudioTransmission() {
+                if (!this.mediaStream || !this.webSocket) return;
+
+                try {
+                    // Initialize audio context with specific settings
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        sampleRate: 16000,
+                        latencyHint: 'interactive'
+                    });
+                    
+                    const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+                    const processor = this.audioContext.createScriptProcessor(1024, 1, 1);
+
+                    source.connect(processor);
+                    processor.connect(this.audioContext.destination);
+
+                    // Process audio data
+                    processor.onaudioprocess = (e) => {
+                        if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+                            const inputData = e.inputBuffer.getChannelData(0);
+                            const int16Data = new Int16Array(inputData.length);
+                            
+                            // Convert Float32 to Int16
+                            for (let i = 0; i < inputData.length; i++) {
+                                int16Data[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+                            }
+                            
+                            // Send raw PCM data
+                            this.webSocket.send(int16Data.buffer);
+                        }
+                    };
+
+                    console.log('Audio transmission started with sample rate:', this.audioContext.sampleRate);
+                } catch (error) {
+                    console.error('Failed to start audio transmission:', error);
+                    this.showAlert('Failed to start audio. Please refresh and try again.', 'error');
+                    this.endCall();
+                }
+            }
+
+            async connectWebSocket(url, retryCount = 0) {
+                return new Promise((resolve, reject) => {
+                    const maxRetries = 3;
+                    const retryDelay = 1000;
+
+                    const connect = () => {
+                        try {
+                            if (this.webSocket) {
+                                this.webSocket.close();
+                                this.webSocket = null;
+                            }
+
+                            console.log(`WebSocket connection attempt ${retryCount + 1}/${maxRetries + 1} to ${url}`);
+                            
+                            // Create WebSocket connection
+                            this.webSocket = new WebSocket(url);
+                            
+                            // Set up event handlers
+                            this.webSocket.onopen = () => {
+                                console.log('WebSocket connection established');
+                                
+                                this.startAudioTransmission();
+                                this.updateCallStatus('Call active - Speak now!');
+                                this.showAlert('Voice call started successfully!', 'success');
+                                this.updateCallUI(true);
+                                resolve();
+                            };
+
+                            this.webSocket.onmessage = (event) => {
+                                try {
+                                    if (event.data instanceof Blob) {
+                                        event.data.arrayBuffer().then(buffer => {
+                                            const audioData = new Int16Array(buffer);
+                                            console.log('Received audio data, length:', audioData.length);
+                                            this.playPcmAudio(audioData, 16000);
+                                        });
+                                    } else {
+                                        // Handle control messages
+                                        const data = JSON.parse(event.data);
+                                        console.log('Received message:', data);
+                                        
+                                        if (data.type === 'transcript') {
+                                            this.updateCallStatus(`🎤 ${data.text}`);
+                                        } else if (data.type === 'assistant_response') {
+                                            this.updateCallStatus(`🤖 ${data.text}`);
+                                        } else if (data.type === 'error') {
+                                            console.error('Vapi error:', data);
+                                            this.showAlert(`Call error: ${data.message}`, 'error');
+                                            this.endCall();
+                                        } else if (data.type === 'authentication_success') {
+                                            console.log('Successfully authenticated with Vapi');
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Failed to process WebSocket message:', error);
+                                }
+                            };
+
+                            this.webSocket.onerror = (error) => {
+                                const errorDetails = {
+                                    readyState: this.webSocket?.readyState,
+                                    url: this.webSocket?.url,
+                                    error: error
+                                };
+                                console.error('WebSocket error details:', errorDetails);
+                                
+                                if (retryCount < maxRetries) {
+                                    console.log(`Retrying connection in ${retryDelay}ms...`);
+                                    setTimeout(() => {
+                                        connect();
+                                    }, retryDelay);
+                                    retryCount++;
+                                } else {
+                                    this.showAlert('Connection error occurred. Please try again.', 'error');
+                                    this.endCall();
+                                    reject(new Error('WebSocket connection failed after retries'));
+                                }
+                            };
+
+                            this.webSocket.onclose = (event) => {
+                                if (this.webSocket) {
+                                    const closeDetails = {
+                                        code: event.code,
+                                        reason: event.reason,
+                                        wasClean: event.wasClean,
+                                        readyState: this.webSocket.readyState
+                                    };
+                                    console.log('WebSocket closed:', closeDetails);
+                                    
+                                    if (event.code !== 1000) {
+                                        this.showAlert(`Connection closed: ${event.reason || 'Unknown reason'}`, 'error');
+                                    }
+                                }
+                                this.endCall();
+                            };
+
+                        } catch (error) {
+                            console.error('WebSocket creation error:', error);
+                            reject(error);
+                        }
+                    };
+
+                    connect();
+                });
+            }
+
+            async endCall() {
+                try {
+                    if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+                        // Send hangup message before closing
+                        this.webSocket.send(JSON.stringify({ type: "hangup" }));
+                    }
+                    
+                    await this.cleanup();
+                    
+                    if (this.currentCall) {
+                        await fetch(`/api/vapi/calls/${this.currentCall.id}`, {
+                            method: 'DELETE'
+                        });
+                    }
+                    
+                    this.currentCall = null;
+                    this.updateCallUI(false);
+                    this.updateCallStatus('');
+                    
+                    await this.loadCallHistory();
+                } catch (error) {
+                    console.error('End call error:', error);
+                    this.showAlert(`Failed to end call: ${error.message}`, 'error');
+                } finally {
+                    this.currentCall = null;
+                    this.updateCallUI(false);
+                    this.updateCallStatus('');
+                }
+            }
+
+            async cleanup() {
+                // Store reference to avoid null check issues
+                const ws = this.webSocket;
+                
+                // Clear the reference first
+                this.webSocket = null;
+                
+                // Then close if it exists
+                if (ws) {
+                    try {
+                        ws.close();
+                    } catch (error) {
+                        console.error('Error closing WebSocket:', error);
+                    }
+                }
+
+                // Stop media stream
+                if (this.mediaStream) {
+                    this.mediaStream.getTracks().forEach(track => track.stop());
+                    this.mediaStream = null;
+                }
+
+                // Close audio context
+                if (this.audioContext) {
+                    try {
+                        await this.audioContext.close();
+                    } catch (error) {
+                        console.error('Error closing AudioContext:', error);
+                    }
+                    this.audioContext = null;
+                }
+            }
+
+            async makePhoneCall() {
+                const phoneNumber = document.getElementById('phone-number').value;
+                
+                if (!phoneNumber) {
+                    this.showAlert('Please enter a phone number', 'error');
+                    return;
+                }
+
+                try {
+                    this.showLoading();
+                    
+                    const response = await fetch('/api/vapi/call/phone', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phoneNumber })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.currentCall = result.data;
+                        this.showAlert(`Call initiated to ${phoneNumber}`, 'success');
+                        await this.loadCallHistory();
+                    } else {
+                        throw new Error(result.error);
+                    }
+
+                } catch (error) {
+                    console.error('Phone call error:', error);
+                    this.showAlert(`Failed to make call: ${error.message}`, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            simulateWebCall() {
+                // This simulates a web call since we don't have the actual Vapi client
+                // In a real implementation, this would be handled by Vapi's SDK
+                setTimeout(() => {
+                    this.updateCallStatus('🎤 Listening... (Demo Mode)');
+                }, 2000);
+
+                setTimeout(() => {
+                    this.updateCallStatus('🤖 Assistant responding...');
+                }, 5000);
+
+                setTimeout(() => {
+                    this.updateCallStatus('💬 Call active - Continue speaking');
+                }, 8000);
+            }
+
+            updateCallUI(isActive) {
+                const startButton = document.getElementById('start-web-call');
+                const endButton = document.getElementById('end-call');
+
+                if (isActive) {
+                    startButton.style.display = 'none';
+                    endButton.style.display = 'flex';
+                    endButton.classList.add('recording');
+                } else {
+                    startButton.style.display = 'flex';
+                    endButton.style.display = 'none';
+                    endButton.classList.remove('recording');
+                }
+            }
+
+            updateCallStatus(status) {
+                document.getElementById('call-status').textContent = status;
+            }
+
+            async searchProperties() {
+                const criteria = {
+                    minPrice: parseFloat(document.getElementById('min-price').value) || undefined,
+                    maxPrice: parseFloat(document.getElementById('max-price').value) || undefined,
+                    bedrooms: parseInt(document.getElementById('bedrooms').value) || undefined,
+                    bathrooms: parseInt(document.getElementById('bathrooms').value) || undefined,
+                    city: document.getElementById('city').value || undefined,
+                    state: document.getElementById('state').value || undefined,
+                    propertyType: document.getElementById('property-type').value || undefined
+                };
+
+                try {
+                    this.showLoading();
+
+                    const response = await fetch('/api/search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ criteria })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.displayProperties(result.properties);
+                        this.updatePropertyCount(result.count);
+                        
+                        if (result.count === 0) {
+                            this.showAlert('No properties found matching your criteria', 'info');
+                        } else {
+                            this.showAlert(`Found ${result.count} properties`, 'success');
+                        }
+                    } else {
+                        throw new Error(result.error);
+                    }
+
+                } catch (error) {
+                    console.error('Search error:', error);
+                    this.showAlert(`Search failed: ${error.message}`, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            displayProperties(properties) {
+                const resultsDiv = document.getElementById('results');
+                
+                if (!properties || properties.length === 0) {
+                    resultsDiv.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No properties found</p>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = properties.map(property => `
+                    <div class="property-card">
+                        <div class="property-price">$${property.price?.toLocaleString() || 'N/A'}</div>
+                        <div class="property-location">${property.address || ''}</div>
+                        <div class="property-location">${property.city || ''}, ${property.state || ''}</div>
+                        <div class="property-details">
+                            <div class="property-detail">
+                                <span>🛏️</span> ${property.bedrooms || 0} beds
+                            </div>
+                            <div class="property-detail">
+                                <span>🚿</span> ${property.bathrooms || 0} baths
+                            </div>
+                            <div class="property-detail">
+                                <span>📐</span> ${property.square_feet || 'N/A'} sq ft
+                            </div>
+                            <div class="property-detail">
+                                <span>🏠</span> ${property.property_type || 'N/A'}
+                            </div>
+                        </div>
+                        ${property.description ? `<p style="margin-top: 10px; color: var(--text-muted); font-size: 0.9rem;">${property.description}</p>` : ''}
+                    </div>
+                `).join('');
+            }
+
+            updatePropertyCount(count) {
+                document.getElementById('count-display').textContent = count.toLocaleString();
+            }
+
+            async loadCallHistory() {
+                try {
+                    const response = await fetch('/api/vapi/calls?limit=10');
+                    const result = await response.json();
+
+                    if (result.success && result.data && result.data.length > 0) {
+                        this.displayCallHistory(result.data);
+                        document.getElementById('call-history-section').style.display = 'block';
+                    }
+
+                } catch (error) {
+                    console.error('Failed to load call history:', error);
+                }
+            }
+
+            displayCallHistory(calls) {
+                const historyDiv = document.getElementById('call-history');
+                
+                historyDiv.innerHTML = calls.map(call => `
+                    <div class="call-item">
+                        <div class="call-info">
+                            <div><strong>Call ID:</strong> ${call.id}</div>
+                            <div><strong>Status:</strong> ${call.status || 'Unknown'}</div>
+                            <div><strong>Started:</strong> ${new Date(call.createdAt).toLocaleString()}</div>
+                            ${call.endedAt ? `<div><strong>Ended:</strong> ${new Date(call.endedAt).toLocaleString()}</div>` : ''}
+                        </div>
+                        <div class="call-actions">
+                            <button class="btn-small btn-view" onclick="app.viewCall('${call.id}')">View</button>
+                            ${call.status === 'in-progress' ? `<button class="btn-small btn-end" onclick="app.endSpecificCall('${call.id}')">End</button>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            async viewCall(callId) {
+                try {
+                    const response = await fetch(`/api/vapi/calls/${callId}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Display call details in a modal or alert
+                        const call = result.data;
+                        let details = `Call Details:\n\n`;
+                        details += `ID: ${call.id}\n`;
+                        details += `Status: ${call.status}\n`;
+                        details += `Started: ${new Date(call.createdAt).toLocaleString()}\n`;
+                        if (call.endedAt) {
+                            details += `Ended: ${new Date(call.endedAt).toLocaleString()}\n`;
+                        }
+                        if (call.duration) {
+                            details += `Duration: ${call.duration}s\n`;
+                        }
+                        
+                        alert(details);
+                        
+                        // Optionally fetch transcript
+                        this.fetchTranscript(callId);
+                    }
+
+                } catch (error) {
+                    console.error('View call error:', error);
+                    this.showAlert(`Failed to view call: ${error.message}`, 'error');
+                }
+            }
+
+            async fetchTranscript(callId) {
+                try {
+                    const response = await fetch(`/api/vapi/calls/${callId}/transcript`);
+                    const result = await response.json();
+
+                    if (result.success && result.data.transcript) {
+                        const transcript = result.data.transcript;
+                        console.log('Call transcript:', transcript);
+                        // You could display this in a modal or dedicated section
+                    }
+
+                } catch (error) {
+                    console.error('Fetch transcript error:', error);
+                }
+            }
+
+            async endSpecificCall(callId) {
+                try {
+                    const response = await fetch(`/api/vapi/calls/${callId}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showAlert('Call ended successfully', 'success');
+                        await this.loadCallHistory();
+                    } else {
+                        throw new Error(result.error);
+                    }
+
+                } catch (error) {
+                    console.error('End specific call error:', error);
+                    this.showAlert(`Failed to end call: ${error.message}`, 'error');
+                }
+            }
+
+            showLoading() {
+                document.getElementById('loading').classList.add('show');
+            }
+
+            hideLoading() {
+                document.getElementById('loading').classList.remove('show');
+            }
+
+            showAlert(message, type = 'info') {
+                const alertsDiv = document.getElementById('alerts');
+                const alertId = 'alert-' + Date.now();
+                
+                const alertHtml = `
+                    <div id="${alertId}" class="alert alert-${type}">
+                        ${message}
+                    </div>
+                `;
+                
+                alertsDiv.insertAdjacentHTML('beforeend', alertHtml);
+                
+                const alertElement = document.getElementById(alertId);
+                alertElement.classList.add('show');
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    alertElement.classList.remove('show');
+                    setTimeout(() => {
+                        alertElement.remove();
+                    }, 300);
+                }, 5000);
+            }
+
+            // Utility method to format phone numbers
+            formatPhoneNumber(phone) {
+                const cleaned = phone.replace(/\D/g, '');
+                if (cleaned.length === 11 && cleaned.startsWith('1')) {
+                    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+                }
+                return phone;
+            }
+
+            // Method to handle real-time call updates (if using WebSocket)
+            setupRealtimeUpdates() {
+                // This would connect to WebSocket for real-time call status updates
+                // For now, we'll poll for updates periodically
+                setInterval(async () => {
+                    if (this.currentCall) {
+                        try {
+                            const response = await fetch(`/api/vapi/calls/${this.currentCall.id}`);
+                            const result = await response.json();
+                            
+                            if (result.success) {
+                                const call = result.data;
+                                if (call.status === 'ended' && this.currentCall.status !== 'ended') {
+                                    this.currentCall = null;
+                                    this.updateCallUI(false);
+                                    this.updateCallStatus('');
+                                    this.showAlert('Call ended by remote party', 'info');
+                                    await this.loadCallHistory();
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Failed to check call status:', error);
+                        }
+                    }
+                }, 5000); // Check every 5 seconds
+            }
+
+            // Voice command simulation (for demo purposes)
+            simulateVoiceCommands() {
+                const commands = [
+                    { text: "Find me a 3 bedroom house under $400,000", action: () => this.executeVoiceSearch(3, null, 400000) },
+                    { text: "Show me condos in Seattle", action: () => this.executeVoiceSearch(null, null, null, "Seattle", "WA", "condo") },
+                    { text: "I need a house with 2 bathrooms", action: () => this.executeVoiceSearch(null, 2) }
+                ];
+
+                // This would be triggered by actual voice recognition in a real implementation
+                console.log('Available voice commands:', commands.map(c => c.text));
+            }
+
+            executeVoiceSearch(bedrooms, bathrooms, maxPrice, city, state, propertyType) {
+                // Fill in search form based on voice command
+                if (bedrooms) document.getElementById('bedrooms').value = bedrooms;
+                if (bathrooms) document.getElementById('bathrooms').value = bathrooms;
+                if (maxPrice) document.getElementById('max-price').value = maxPrice;
+                if (city) document.getElementById('city').value = city;
+                if (state) document.getElementById('state').value = state;
+                if (propertyType) document.getElementById('property-type').value = propertyType;
+
+                // Execute search
+                this.searchProperties();
+            }
+
+            // Initialize keyboard shortcuts
+            setupKeyboardShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    // Alt + V to start voice call
+                    if (e.altKey && e.key === 'v') {
+                        e.preventDefault();
+                        this.startWebCall();
+                    }
+                    
+                    // Alt + E to end call
+                    if (e.altKey && e.key === 'e') {
+                        e.preventDefault();
+                        this.endCall();
+                    }
+                    
+                    // Alt + S to focus search
+                    if (e.altKey && e.key === 's') {
+                        e.preventDefault();
+                        document.getElementById('city').focus();
+                    }
+                });
+            }
+
+            // Method to export call data
+            async exportCallData() {
+                try {
+                    const response = await fetch('/api/vapi/calls?limit=1000');
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const data = JSON.stringify(result.data, null, 2);
+                        const blob = new Blob([data], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `call-history-${new Date().toISOString().split('T')[0]}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        this.showAlert('Call data exported successfully', 'success');
+                    }
+
+                } catch (error) {
+                    console.error('Export error:', error);
+                    this.showAlert(`Failed to export data: ${error.message}`, 'error');
+                }
+            }
+
+            playPcmAudio(int16Array, sampleRate = 16000) {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+                }
+                // Convert Int16 to Float32
+                const float32 = new Float32Array(int16Array.length);
+                for (let i = 0; i < int16Array.length; i++) {
+                    float32[i] = int16Array[i] / 32768;
+                }
+                const buffer = this.audioContext.createBuffer(1, float32.length, sampleRate);
+                buffer.getChannelData(0).set(float32);
+                const source = this.audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(this.audioContext.destination);
+                source.start();
+            }
+        }
+
+        // Initialize the application
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new VapiRealEstateApp();
+            
+            // Setup additional features
+            app.setupKeyboardShortcuts();
+            app.setupRealtimeUpdates();
+            app.simulateVoiceCommands();
+            
+            // Show keyboard shortcuts in console
+            console.log(`
+🎹 Keyboard Shortcuts:
+Alt + V: Start voice call
+Alt + E: End call  
+Alt + S: Focus search
+
+🎤 Voice Commands Available:
+- "Find me a [number] bedroom house under $[amount]"
+- "Show me [property type] in [city]"
+- "I need a house with [number] bathrooms"
+
+📞 Features:
+- Real-time voice chat with AI assistant
+- Phone call integration
+- Property search and filtering
+- Call history and transcripts
+- Responsive design for mobile
+            `);
+        });
+
+        // Global error handler
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.error);
+            if (app) {
+                app.showAlert('An unexpected error occurred', 'error');
+            }
+        });
+
+        // Handle offline/online status
+        window.addEventListener('online', () => {
+            if (app) {
+                app.showAlert('Connection restored', 'success');
+                app.checkSystemHealth();
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            if (app) {
+                app.showAlert('Connection lost - some features may not work', 'error');
+            }
+        });
+
+        // Service Worker registration for PWA capabilities (optional)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(err => {
+                console.log('ServiceWorker registration failed:', err);
+            });
+        }
+    </script>
+</body>
+</html>
