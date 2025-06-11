@@ -1,17 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-    
-<!--AP SEEK -->
-
-
-    <script src="https://unpkg.com/@vapi-ai/web@latest"></script>
-
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Real Estate Assistant - Powered by Vapi.ai</title>
+
     <style>
         * {
             margin: 0;
@@ -492,12 +485,13 @@
                         <div id="call-status" style="margin-top: 10px; font-weight: 600;"></div>
                     </div>
                     
+                    
                     <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <p style="margin-bottom: 15px; font-weight: 600;">Or call directly:</p>
+                        <p style="margin-bottom: 15px; font-weight: 600;">Or call directly:</p> 
                         <div class="phone-input">
                             <input type="tel" id="phone-number" placeholder="+1234567890" />
-                            <button id="make-call" class="phone-button">📞 Call</button>
-                        </div>
+                            <button id="make-call" class="phone-button">📞 Call</button> 
+                        </div> 
                     </div>
                 </div>
             </div>
@@ -572,19 +566,27 @@
         </div>
     </div>
 
-    <script>
-        class VapiRealEstateApp {
+<script>
+    ////////////////////////////////
+    class VapiRealEstateApp {
             constructor() {
                 this.currentCall = null;
-                this.vapiClient = null;
+                this.webSocket = null;
+                this.mediaStream = null;
+                this.audioContext = null;
+                this.mediaRecorder = null;
                 this.init();
             }
 
             async init() {
-                this.setupEventListeners();
-                await this.checkSystemHealth();
-                await this.loadCallHistory();
-                this.setupVapiClient();
+                try {
+                    this.setupEventListeners();
+                    await this.checkSystemHealth();
+                    await this.loadCallHistory();
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    this.showAlert('Voice capabilities may be limited. Please refresh the page if you need to make calls.', 'warning');
+                }
             }
 
             setupEventListeners() {
@@ -610,37 +612,6 @@
                     }
                     e.target.value = value ? '+' + value : '';
                 });
-            }
-
-            async setupVapiClient() {
-                 
-                try {
-               
-                   if (!window.Vapi) {
-        await new Promise(resolve => {
-            const checkInterval = setInterval(() => {
-                if (window.Vapi) {
-                    clearInterval(checkInterval);
-                    resolve();
-                }
-            }, 100);
-            
-            // Timeout after 5 seconds
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                resolve();
-            }, 5000);
-        });
-    }
-
-    if (!window.Vapi) {
-        throw new Error('Vapi SDK failed to load');
-    }
-    
-    console.log('Vapi client available', window.Vapi);
-                } catch (error) {
-                    console.warn('Vapi client not available:', error);
-                }
             }
 
             async checkSystemHealth() {
@@ -680,86 +651,332 @@
                 element.lastChild.textContent = text;
             }
 
-        /***    
             async startWebCall() {
                 try {
                     this.showLoading();
-                    this.updateCallStatus('Initiating call...');
+                    this.updateCallStatus('Initializing call...');
 
-                    const response = await fetch('/api/vapi/call/web', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
+                    // Get configuration and create call session
+                    const configResponse = await fetch('/api/vapi/config');
+                    const config = await configResponse.json();
+                    
+                    if (!config.success || !config.publicKey) {
+                        console.error('Invalid config response:', config);
+                        throw new Error('Failed to get Vapi configuration');
+                    }
+
+                    console.log('Creating call with config:', {
+                        assistantId: config.assistantId,
+                        publicKey: config.publicKey.substring(0, 8) + '...' // Log partial key for security
                     });
 
-                    const result = await response.json();
+                    // Create a new call session through our backend proxy
+                    const callRequest = {
+                        assistantId: config.assistantId,
+                        transport: {
+                            provider: "vapi.websocket",
+                            audioFormat: {
+                                format: "pcm_s16le",
+                                container: "raw",
+                                sampleRate: 16000
+                            }
+                        }
+                    };
 
-                    if (result.success) {
-                        this.currentCall = result.data;
-                        this.updateCallUI(true);
-                        this.updateCallStatus('Call active - Speak now!');
-                        this.showAlert('Voice call started successfully!', 'success');
-                        
-                        // In a real implementation, you would connect to Vapi's web client here
-                        this.simulateWebCall();
-                    } else {
-                        throw new Error(result.error);
+                    console.log('Sending call creation request:', callRequest);
+
+                    const response = await fetch('/api/vapi/call', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(callRequest)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Call creation failed:', {
+                            status: response.status,
+                            statusText: response.statusText,
+                            error: errorText,
+                            request: callRequest
+                        });
+                        throw new Error(`Call creation failed: ${response.status} ${response.statusText}`);
                     }
+
+                    const result = await response.json();
+                    console.log('Call creation raw response:', result);
+
+                    // Detailed validation of the response
+                    if (!result.success) {
+                        console.error('Call creation unsuccessful:', result);
+                        throw new Error(result.error || 'Call creation failed');
+                    }
+
+                    if (!result.data) {
+                        console.error('No data in response:', result);
+                        throw new Error('No data received from server');
+                    }
+
+                    // Check for WebSocket transport specifically
+                    if (!result.data.transport || result.data.transport.provider !== 'vapi.websocket') {
+                        console.error('Invalid transport type:', result.data.transport);
+                        throw new Error('Server returned non-WebSocket transport');
+                    }
+
+                    if (!result.data.transport.websocketCallUrl) {
+                        console.error('No WebSocket URL in transport:', result.data.transport);
+                        throw new Error('No WebSocket URL received');
+                    }
+
+                    this.currentCall = {
+                        id: result.data.id,
+                        websocketUrl: result.data.transport.websocketCallUrl
+                    };
+
+                    console.log('Call created successfully:', {
+                        id: this.currentCall.id,
+                        url: this.currentCall.websocketUrl,
+                        transport: result.data.transport
+                    });
+
+                    // Request microphone access with correct audio constraints
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            channelCount: 1,
+                            sampleRate: 16000,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        } 
+                    });
+                    this.mediaStream = stream;
+
+                    // Initialize WebSocket connection using the transport URL from response
+                    console.log('Attempting WebSocket connection to:', this.currentCall.websocketUrl);
+                    
+                    await this.connectWebSocket(this.currentCall.websocketUrl);
 
                 } catch (error) {
                     console.error('Web call error:', error);
-                    this.showAlert(`Failed to start call: ${error.message}`, 'error');
+                    this.showAlert(`Call failed: ${error.message}`, 'error');
                     this.updateCallStatus('');
+                    this.updateCallUI(false);
+                    await this.cleanup();
                 } finally {
                     this.hideLoading();
                 }
             }
-        ****/     
-       
-       
-        //AP SEEK
 
-       async startWebCall() {
-    try {
-        this.showLoading();
-        this.updateCallStatus('Initializing call...');
+            startAudioTransmission() {
+                if (!this.mediaStream || !this.webSocket) return;
 
-        // 1. Ensure SDK is loaded
-        if (!window.Vapi) {
-            await this.setupVapiClient();
-            if (!window.Vapi) {
-                throw new Error('Vapi SDK not available. Please reload the page.');
+                try {
+                    // Initialize audio context with specific settings
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        sampleRate: 16000,
+                        latencyHint: 'interactive'
+                    });
+                    
+                    const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+                    const processor = this.audioContext.createScriptProcessor(1024, 1, 1);
+
+                    source.connect(processor);
+                    processor.connect(this.audioContext.destination);
+
+                    // Process audio data
+                    processor.onaudioprocess = (e) => {
+                        if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+                            const inputData = e.inputBuffer.getChannelData(0);
+                            const int16Data = new Int16Array(inputData.length);
+                            
+                            // Convert Float32 to Int16
+                            for (let i = 0; i < inputData.length; i++) {
+                                int16Data[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+                            }
+                            
+                            // Send raw PCM data
+                            this.webSocket.send(int16Data.buffer);
+                        }
+                    };
+
+                    console.log('Audio transmission started with sample rate:', this.audioContext.sampleRate);
+                } catch (error) {
+                    console.error('Failed to start audio transmission:', error);
+                    this.showAlert('Failed to start audio. Please refresh and try again.', 'error');
+                    this.endCall();
+                }
             }
-        }
 
-        // 2. Get configuration from backend
-        const configResponse = await fetch('/api/vapi/config');
-        const config = await configResponse.json();
-        
-        if (!config.success || !config.publicKey) {
-            throw new Error('Failed to get Vapi configuration');
-        }
+            async connectWebSocket(url, retryCount = 0) {
+                return new Promise((resolve, reject) => {
+                    const maxRetries = 3;
+                    const retryDelay = 1000;
 
-        // 3. Initialize Vapi client
-        this.vapiClient = new window.Vapi.Client({
-            apiKey: config.publicKey,
-            baseUrl: 'https://api.vapi.ai'
-        });
+                    const connect = () => {
+                        try {
+                            if (this.webSocket) {
+                                this.webSocket.close();
+                                this.webSocket = null;
+                            }
 
-        // ... rest of your existing startWebCall code ...
-    } catch (error) {
-        console.error('Web call error:', error);
-        this.showAlert(`Call failed: ${error.message}`, 'error');
-        this.updateCallStatus('');
-        this.updateCallUI(false);
-        
-        // Special handling for SDK loading errors
-        if (error.message.includes('Vapi SDK')) {
-            this.showAlert('Please refresh the page to load voice capabilities', 'error');
-        }
-    } finally {
-        this.hideLoading();
-    }
-}
+                            console.log(`WebSocket connection attempt ${retryCount + 1}/${maxRetries + 1} to ${url}`);
+                            
+                            // Create WebSocket connection
+                            this.webSocket = new WebSocket(url);
+                            
+                            // Set up event handlers
+                            this.webSocket.onopen = () => {
+                                console.log('WebSocket connection established');
+                                
+                                this.startAudioTransmission();
+                                this.updateCallStatus('Call active - Speak now!');
+                                this.showAlert('Voice call started successfully!', 'success');
+                                this.updateCallUI(true);
+                                resolve();
+                            };
+
+                            this.webSocket.onmessage = (event) => {
+                                try {
+                                    if (event.data instanceof Blob) {
+                                        event.data.arrayBuffer().then(buffer => {
+                                            const audioData = new Int16Array(buffer);
+                                            console.log('Received audio data, length:', audioData.length);
+                                            this.playPcmAudio(audioData, 16000);
+                                        });
+                                    } else {
+                                        // Handle control messages
+                                        const data = JSON.parse(event.data);
+                                        console.log('Received message:', data);
+                                        
+                                        if (data.type === 'transcript') {
+                                            this.updateCallStatus(`🎤 ${data.text}`);
+                                        } else if (data.type === 'assistant_response') {
+                                            this.updateCallStatus(`🤖 ${data.text}`);
+                                        } else if (data.type === 'error') {
+                                            console.error('Vapi error:', data);
+                                            this.showAlert(`Call error: ${data.message}`, 'error');
+                                            this.endCall();
+                                        } else if (data.type === 'authentication_success') {
+                                            console.log('Successfully authenticated with Vapi');
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Failed to process WebSocket message:', error);
+                                }
+                            };
+
+                            this.webSocket.onerror = (error) => {
+                                const errorDetails = {
+                                    readyState: this.webSocket?.readyState,
+                                    url: this.webSocket?.url,
+                                    error: error
+                                };
+                                console.error('WebSocket error details:', errorDetails);
+                                
+                                if (retryCount < maxRetries) {
+                                    console.log(`Retrying connection in ${retryDelay}ms...`);
+                                    setTimeout(() => {
+                                        connect();
+                                    }, retryDelay);
+                                    retryCount++;
+                                } else {
+                                    this.showAlert('Connection error occurred. Please try again.', 'error');
+                                    this.endCall();
+                                    reject(new Error('WebSocket connection failed after retries'));
+                                }
+                            };
+
+                            this.webSocket.onclose = (event) => {
+                                if (this.webSocket) {
+                                    const closeDetails = {
+                                        code: event.code,
+                                        reason: event.reason,
+                                        wasClean: event.wasClean,
+                                        readyState: this.webSocket.readyState
+                                    };
+                                    console.log('WebSocket closed:', closeDetails);
+                                    
+                                    if (event.code !== 1000) {
+                                        this.showAlert(`Connection closed: ${event.reason || 'Unknown reason'}`, 'error');
+                                    }
+                                }
+                                this.endCall();
+                            };
+
+                        } catch (error) {
+                            console.error('WebSocket creation error:', error);
+                            reject(error);
+                        }
+                    };
+
+                    connect();
+                });
+            }
+
+            async endCall() {
+                try {
+                    if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+                        // Send hangup message before closing
+                        this.webSocket.send(JSON.stringify({ type: "hangup" }));
+                    }
+                    
+                    await this.cleanup();
+                    
+                    if (this.currentCall) {
+                        await fetch(`/api/vapi/calls/${this.currentCall.id}`, {
+                            method: 'DELETE'
+                        });
+                    }
+                    
+                    this.currentCall = null;
+                    this.updateCallUI(false);
+                    this.updateCallStatus('');
+                    
+                    await this.loadCallHistory();
+                } catch (error) {
+                    console.error('End call error:', error);
+                    this.showAlert(`Failed to end call: ${error.message}`, 'error');
+                } finally {
+                    this.currentCall = null;
+                    this.updateCallUI(false);
+                    this.updateCallStatus('');
+                }
+            }
+
+            async cleanup() {
+                // Store reference to avoid null check issues
+                const ws = this.webSocket;
+                
+                // Clear the reference first
+                this.webSocket = null;
+                
+                // Then close if it exists
+                if (ws) {
+                    try {
+                        ws.close();
+                    } catch (error) {
+                        console.error('Error closing WebSocket:', error);
+                    }
+                }
+
+                // Stop media stream
+                if (this.mediaStream) {
+                    this.mediaStream.getTracks().forEach(track => track.stop());
+                    this.mediaStream = null;
+                }
+
+                // Close audio context
+                if (this.audioContext) {
+                    try {
+                        await this.audioContext.close();
+                    } catch (error) {
+                        console.error('Error closing AudioContext:', error);
+                    }
+                    this.audioContext = null;
+                }
+            }
+
             async makePhoneCall() {
                 const phoneNumber = document.getElementById('phone-number').value;
                 
@@ -794,26 +1011,6 @@
                     this.hideLoading();
                 }
             }
-
-async endCall() {
-    if (!this.currentCall || !this.vapiClient) return;
-
-    try {
-        await this.vapiClient.stop();
-        await fetch(`/api/vapi/calls/${this.currentCall.id}`, {
-            method: 'DELETE'
-        });
-        
-        this.currentCall = null;
-        this.updateCallUI(false);
-        this.updateCallStatus('');
-        this.showAlert('Call ended', 'info');
-        await this.loadCallHistory();
-    } catch (error) {
-        console.error('End call error:', error);
-        this.showAlert(`Failed to end call: ${error.message}`, 'error');
-    }
-}
 
             simulateWebCall() {
                 // This simulates a web call since we don't have the actual Vapi client
@@ -1174,6 +1371,23 @@ async endCall() {
                     this.showAlert(`Failed to export data: ${error.message}`, 'error');
                 }
             }
+
+            playPcmAudio(int16Array, sampleRate = 16000) {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+                }
+                // Convert Int16 to Float32
+                const float32 = new Float32Array(int16Array.length);
+                for (let i = 0; i < int16Array.length; i++) {
+                    float32[i] = int16Array[i] / 32768;
+                }
+                const buffer = this.audioContext.createBuffer(1, float32.length, sampleRate);
+                buffer.getChannelData(0).set(float32);
+                const source = this.audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(this.audioContext.destination);
+                source.start();
+            }
         }
 
         // Initialize the application
@@ -1235,15 +1449,6 @@ Alt + S: Focus search
                 console.log('ServiceWorker registration failed:', err);
             });
         }
-
-//TRYING AP
-
- 
-
- 
-
-
-
     </script>
 </body>
 </html>

@@ -18,6 +18,8 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 //Arul
 
+//
+
 // Initialize Vapi service with error handling
 let vapiService;
 try {
@@ -35,7 +37,8 @@ app.use(helmet({
             "'self'", 
             "wss://api.vapi.ai", 
             "https://api.vapi.ai",
-            "ws://localhost:*" // for development
+            "ws://localhost:*", // for development
+            "wss://*.vapi.ai"
         ],
         scriptSrc: [
             "'self'", 
@@ -324,31 +327,57 @@ app.post('/api/vapi/call/phone', async (req, res) => {
 });
 
 // Create web call
-
-
-//AP app.post('/api/vapi/call/web', async (req, res) => {
-    app.post('/api/vapi/call/web', async (req, res) => {
+app.post('/api/vapi/call', async (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
             error: 'Vapi service unavailable'
         });
     }
-
+    
     try {
         const { assistantId } = req.body;
-        const result = await vapiService.createWebCall(assistantId);
         
-        res.json({
-            success: true,
-            data: result
+        // Always use WebSocket transport configuration
+        const transport = {
+            provider: "vapi.websocket",
+            audioFormat: {
+                format: "pcm_s16le",
+                container: "raw",
+                sampleRate: 16000
+            }
+        };
+        
+        console.log('Creating web call with config:', { 
+            assistantId: assistantId || vapiService.assistantId,
+            transportProvider: transport.provider,
+            audioFormat: transport.audioFormat
         });
-
+        
+        const result = await vapiService.createWebCall(assistantId, transport);
+        
+        if (!result || !result.id || !result.transport || !result.transport.websocketCallUrl) {
+            throw new Error('Invalid response from Vapi service');
+        }
+        
+        // Send back only what's needed for the frontend
+        return res.json({
+            success: true,
+            data: {
+                id: result.id,
+                transport: {
+                    provider: result.transport.provider,
+                    websocketCallUrl: result.transport.websocketCallUrl
+                },
+                publicKey: result.publicKey
+            }
+        });
+        
     } catch (error) {
-        console.error('Web call error:', error);
-        res.status(500).json({
+        console.error('Failed to create web call:', error);
+        return res.status(500).json({
             success: false,
-            error: error.message || 'Failed to create web call'
+            error: error.message
         });
     }
 });
@@ -461,8 +490,6 @@ app.get('/api/vapi/calls/:callId/transcript', async (req, res) => {
     }
 });
 
-// Add this endpoint to your Express app (app.js)
-
 // Get VAPI configuration (public key for frontend)
 app.get('/api/vapi/config', (req, res) => {
     if (!vapiService) {
@@ -472,40 +499,12 @@ app.get('/api/vapi/config', (req, res) => {
         });
     }
 
+    // Only send what's absolutely necessary for frontend
     res.json({
         success: true,
-        publicKey: process.env.VAPI_PUBLIC_KEY,
-        assistantId: process.env.VAPI_ASSISTANT_ID
+        publicKey: vapiService.publicKey,
+        assistantId: vapiService.assistantId
     });
-});
-
-// Update your existing web call endpoint to return the public key
-app.post('/api/vapi/call/web', async (req, res) => {
-    if (!vapiService) {
-        return res.status(503).json({
-            success: false,
-            error: 'Vapi service unavailable'
-        });
-    }
-    
-    try {
-        const { assistantId } = req.body;
-        const result = await vapiService.createWebCall(assistantId);
-        
-        res.json({
-            success: true,
-            data: {
-                ...result,
-                publicKey: process.env.VAPI_PUBLIC_KEY // Add public key to response
-            }
-        });
-    } catch (error) {
-        console.error('Web call error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Failed to create web call'
-        });
-    }
 });
 
 // Serve static files
@@ -579,5 +578,60 @@ const gracefulShutdown = () => {
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+
+// Webhook endpoint for Vapi status updates
+app.post('/api/vapi/webhook', express.json(), async (req, res) => {
+    try {
+        const { type, data } = req.body;
+        console.log('Received webhook:', type, data);
+
+        if (!type || !data) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid webhook payload'
+            });
+        }
+
+        switch (type) {
+            case 'status-update':
+                if (data.callId) {
+                    console.log(`Call ${data.callId} status updated to: ${data.status}`);
+                }
+                break;
+            case 'transcript':
+                if (data.callId && data.transcript) {
+                    console.log(`New transcript for call ${data.callId}:`, data.transcript);
+                }
+                break;
+            case 'call-ended':
+                if (data.callId) {
+                    console.log(`Call ${data.callId} ended`);
+                }
+                break;
+            case 'speech-update':
+                console.log('Speech update:', data);
+                break;
+            case 'conversation-update':
+                console.log('Conversation update:', data);
+                break;
+            case 'end-of-call-report':
+                console.log('End of call report:', data);
+                break;
+            default:
+                console.log('Unhandled webhook type:', type, data);
+        }
+
+        // Always return 200 to acknowledge receipt
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('Webhook error:', error);
+        // Still return 200 to prevent retries
+        res.json({ 
+            success: false,
+            error: error.message 
+        });
+    }
+});
 
 module.exports = app;

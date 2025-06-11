@@ -16,8 +16,18 @@ class VapiService extends EventEmitter {
         this.apiKey = this.privateKey;
         
         this.assistantId = process.env.VAPI_ASSISTANT_ID;
-        this.baseUrl = 'api.vapi.ai';
+        
+        // Set base URL with proper format
+        this.baseUrl = 'https://api.vapi.ai';
+        
         this.initialized = false;
+        
+        console.log('VapiService constructor - Configuration:', {
+            hasPrivateKey: !!this.privateKey,
+            hasPublicKey: !!this.publicKey,
+            hasAssistantId: !!this.assistantId,
+            baseUrl: this.baseUrl
+        });
         
         // Only initialize if configuration is valid
         if (this.validateConfig()) {
@@ -29,26 +39,35 @@ class VapiService extends EventEmitter {
 
     // Update validation
     validateConfig() {
+        let isValid = true;
+        const issues = [];
+
         if (!this.privateKey || this.privateKey === 'your_private_key_here') {
-            console.warn('VAPI_PRIVATE_KEY not found or not set in environment variables');
-            return false;
+            issues.push('VAPI_PRIVATE_KEY not found or not set');
+            isValid = false;
         }
 
         if (!this.publicKey || this.publicKey === 'your_public_key_here') {
-            console.warn('VAPI_PUBLIC_KEY not found or not set in environment variables');
-            return false;
+            issues.push('VAPI_PUBLIC_KEY not found or not set');
+            isValid = false;
         }
 
         if (!this.assistantId || this.assistantId === 'your_assistant_id_here') {
-            console.warn('VAPI_ASSISTANT_ID not found or not set in environment variables');
-            return false;
+            issues.push('VAPI_ASSISTANT_ID not found or not set');
+            isValid = false;
         }
 
-        return true;
+        console.log('VapiService validation result:', {
+            isValid,
+            issues: issues.length > 0 ? issues : 'No issues found'
+        });
+
+        return isValid;
     }
 
     async initialize() {
         try {
+            // Skip configuration PATCH attempt since it's not supported
             this.initialized = true;
             this.emit('ready');
             console.log('VapiService initialized successfully');
@@ -85,7 +104,24 @@ class VapiService extends EventEmitter {
     // Make HTTP request helper
     makeRequest(options, data = null) {
         return new Promise((resolve, reject) => {
-            const req = https.request(options, (res) => {
+            // Parse the baseUrl to get hostname
+            const url = new URL(this.baseUrl);
+            
+            const requestOptions = {
+                ...options,
+                hostname: url.hostname,
+                path: options.path // Use the path as is
+            };
+
+            console.log('Making API request:', {
+                method: requestOptions.method,
+                fullUrl: `${this.baseUrl}${options.path}`,
+                hostname: requestOptions.hostname,
+                path: requestOptions.path,
+                hasData: !!data
+            });
+
+            const req = https.request(requestOptions, (res) => {
                 let body = '';
                 
                 res.on('data', (chunk) => {
@@ -94,25 +130,49 @@ class VapiService extends EventEmitter {
                 
                 res.on('end', () => {
                     try {
+                        console.log('API response received:', {
+                            statusCode: res.statusCode,
+                            headers: res.headers,
+                            bodyLength: body.length
+                        });
+
+                        // Handle empty response
+                        if (!body) {
+                            if (res.statusCode >= 200 && res.statusCode < 300) {
+                                resolve({});
+                            } else {
+                                reject(new Error(`API Error: ${res.statusCode}`));
+                            }
+                            return;
+                        }
+
                         const response = JSON.parse(body);
                         
                         if (res.statusCode >= 200 && res.statusCode < 300) {
                             resolve(response);
                         } else {
+                            console.error('API error response:', {
+                                statusCode: res.statusCode,
+                                response: response
+                            });
                             reject(new Error(`API Error: ${res.statusCode} - ${response.message || body}`));
                         }
                     } catch (error) {
+                        console.error('Failed to parse API response:', error);
                         reject(new Error(`Parse Error: ${error.message}`));
                     }
                 });
             });
 
             req.on('error', (error) => {
+                console.error('Request error:', error);
                 reject(new Error(`Request Error: ${error.message}`));
             });
 
             if (data) {
-                req.write(JSON.stringify(data));
+                const jsonData = JSON.stringify(data);
+                console.log('Sending request data:', jsonData);
+                req.write(jsonData);
             }
             
             req.end();
@@ -201,8 +261,15 @@ class VapiService extends EventEmitter {
     }
 
     // Create a web call (for browser integration)
-    async createWebCall(customAssistantId = null) {
+    async createWebCall(customAssistantId = null, transportConfig = null) {
         try {
+            console.log('Creating web call - Starting:', {
+                initialized: this.initialized,
+                hasPrivateKey: !!this.privateKey,
+                customAssistantId: !!customAssistantId,
+                hasTransportConfig: !!transportConfig
+            });
+
             if (!this.initialized) {
                 throw new Error('VapiService not initialized. Please check configuration.');
             }
@@ -212,33 +279,56 @@ class VapiService extends EventEmitter {
             }
 
             const callData = {
-                assistantId: customAssistantId || this.assistantId
+                assistantId: customAssistantId || this.assistantId,
+                transport: transportConfig || {
+                    provider: "vapi.websocket",
+                    audioFormat: {
+                        format: "pcm_s16le",
+                        container: "raw",
+                        sampleRate: 16000
+                    }
+                }
             };
 
-            console.log('Request payload:', JSON.stringify(callData, null, 2));
+            console.log('Creating web call with config:', JSON.stringify(callData, null, 2));
 
             const options = {
                 hostname: this.baseUrl,
-                path: '/call/web',
+                path: '/call',
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.publicKey}`, // Use public key for web calls
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${this.privateKey}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             };
 
             const result = await this.makeRequest(options, callData);
             
-            console.log(`Web call created successfully:`, result.id);
+            // Validate the response
+            if (!result || !result.id || !result.transport || !result.transport.websocketCallUrl) {
+                console.error('Invalid response from Vapi API:', result);
+                throw new Error('Invalid response from Vapi API - missing required fields');
+            }
+            
+            console.log('Web call created successfully:', {
+                callId: result.id,
+                hasTransport: !!result.transport,
+                transportProvider: result.transport?.provider,
+                hasWebSocketUrl: !!result.transport?.websocketCallUrl
+            });
             
             // Return both the call data and public key for frontend
             return {
                 ...result,
-                publicKey: this.publicKey // Frontend needs this to connect
+                publicKey: this.publicKey
             };
 
         } catch (error) {
-            console.error('Create web call error:', error);
+            console.error('Create web call error:', {
+                error: error.message,
+                stack: error.stack
+            });
             throw error;
         }
     }
@@ -293,7 +383,7 @@ class VapiService extends EventEmitter {
                 path: `/call/${callId}`,
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${this.privateKey}`, // Use private key
+                    'Authorization': `Bearer ${this.privateKey}`,
                     'Content-Type': 'application/json'
                 }
             };
