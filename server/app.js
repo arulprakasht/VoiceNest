@@ -37,7 +37,7 @@ app.use(helmet({
             "'self'", 
             "wss://api.vapi.ai", 
             "https://api.vapi.ai",
-            "ws://localhost:*", // for development
+        /*    "ws://localhost:*", // for development*/
             "wss://*.vapi.ai"
         ],
         scriptSrc: [
