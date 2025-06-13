@@ -3,12 +3,20 @@
     {
       "src": "package.json",
       "use": "@vercel/node"
+    },
+    {
+      "src": "client/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "server/app.js"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "client/index.html"
     }
   ]
 }
