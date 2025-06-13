@@ -259,10 +259,12 @@ app.post('/api/search', async (req, res) => {
     }
 });
 //Test-don't leave it for folks to claim money
+
+/*
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working' });
 });
-
+*/
 
 
 // Enhanced Vapi endpoints
