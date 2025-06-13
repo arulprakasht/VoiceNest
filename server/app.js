@@ -180,7 +180,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Property search endpoint (keeping your existing implementation)
-app.post('https://api.vapi.ai/api/search', async (req, res) => {
+app.post('/api/search', async (req, res) => {
     if (!supabase) {
         return res.status(503).json({
             success: false,
@@ -259,16 +259,16 @@ app.post('https://api.vapi.ai/api/search', async (req, res) => {
     }
 });
 //Test-don't leave it for folks to claim money
-/*app.get('/api/test', (req, res) => {
+app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working' });
 });
-*/
+
 
 
 // Enhanced Vapi endpoints
 
 // Get assistant info
-app.get('https://api.vapi.ai/api/vapi/assistant', async (req, res) => {
+app.get('/api/vapi/assistant', async (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
@@ -293,7 +293,7 @@ app.get('https://api.vapi.ai/api/vapi/assistant', async (req, res) => {
 });
 
 // Create phone call
-app.post('https://api.vapi.ai/api/vapi/call/phone', async (req, res) => {
+app.post('/api/vapi/call/phone', async (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
@@ -327,7 +327,7 @@ app.post('https://api.vapi.ai/api/vapi/call/phone', async (req, res) => {
 });
 
 // Create web call
-app.post('https://api.vapi.ai/api/vapi/call', async (req, res) => {
+app.post('/api/vapi/call', async (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
@@ -383,7 +383,7 @@ app.post('https://api.vapi.ai/api/vapi/call', async (req, res) => {
 });
 
 // Get all calls
-app.get('https://api.vapi.ai/api/vapi/calls', async (req, res) => {
+app.get('/api/vapi/calls', async (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
@@ -410,7 +410,7 @@ app.get('https://api.vapi.ai/api/vapi/calls', async (req, res) => {
 });
 
 // Get specific call
-app.get('https://api.vapi.ai/api/vapi/calls/:callId', async (req, res) => {
+app.get('/api/vapi/calls/:callId', async (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
@@ -437,7 +437,7 @@ app.get('https://api.vapi.ai/api/vapi/calls/:callId', async (req, res) => {
 });
 
 // End call
-app.delete('https://api.vapi.ai/api/vapi/calls/:callId', async (req, res) => {
+app.delete('/api/vapi/calls/:callId', async (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
@@ -464,7 +464,7 @@ app.delete('https://api.vapi.ai/api/vapi/calls/:callId', async (req, res) => {
 });
 
 // Get call transcript
-app.get('https://api.vapi.ai/api/vapi/calls/:callId/transcript', async (req, res) => {
+app.get('/api/vapi/calls/:callId/transcript', async (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
@@ -491,7 +491,7 @@ app.get('https://api.vapi.ai/api/vapi/calls/:callId/transcript', async (req, res
 });
 
 // Get VAPI configuration (public key for frontend)
-app.get('https://api.vapi.ai/api/vapi/config', (req, res) => {
+app.get('/api/vapi/config', (req, res) => {
     if (!vapiService) {
         return res.status(503).json({
             success: false,
@@ -580,8 +580,7 @@ process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
 // Webhook endpoint for Vapi status updates
-//APCHANGE
-app.post('https://api.vapi.ai/api/vapi/webhook', express.json(), async (req, res) => {
+app.post('/api/vapi/webhook', express.json(), async (req, res) => {
     try {
         const { type, data } = req.body;
         console.log('Received webhook:', type, data);
